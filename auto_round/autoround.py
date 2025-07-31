@@ -181,6 +181,7 @@ class AutoRound(object):
         super_bits: int = None,
         super_group_size: int = None,
         disable_opt_rtn: bool = False,
+        force_cpu_caching: bool = False,
         model_kwargs: dict = None,
         **kwargs,
     ):
@@ -206,6 +207,8 @@ class AutoRound(object):
         self.enable_norm_bias_tuning = enable_norm_bias_tuning
         self.group_size = group_size
         self.sym = sym
+        self.force_cpu_caching = force_cpu_caching
+
 
         self.low_gpu_mem_usage = low_gpu_mem_usage
         self.low_cpu_mem_usage = low_cpu_mem_usage
@@ -1353,7 +1356,20 @@ class AutoRound(object):
             )
         else:
             logger.info("start to cache block inputs")
-        all_inputs = self.try_cache_inter_data_gpucpu(all_first_block_names, self.nsamples, layer_names=layer_names)
+
+        if self.force_cpu_caching:
+            original_device = self.device
+            try:
+                logger.info("Flag `force_cpu_caching` detected. Forcing caching to CPU.")
+                self.device = "cpu"
+                self.model = self.model.to(self.device)
+                all_inputs = self.try_cache_inter_data_gpucpu(all_first_block_names, self.nsamples, layer_names=layer_names)
+            finally:
+                logger.info(f"Restoring to original device: {original_device}.")
+                self.device = original_device
+        else:
+            all_inputs = self.try_cache_inter_data_gpucpu(all_first_block_names, self.nsamples, layer_names=layer_names)
+
         is_quantized_embedding = self.quantize_embedding_layer()
         all_q_inputs = None
         if is_quantized_embedding:

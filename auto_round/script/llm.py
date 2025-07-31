@@ -227,6 +227,10 @@ class BasicArgumentParser(argparse.ArgumentParser):
             help="whether to disable optimization of the RTN mode(iters=0) (default is False).",
         )
 
+        self.add_argument(
+            "--force_cpu_caching", action="store_true", help="Cache block inputs on CPU"
+        )
+
 
 class EvalArgumentParser(argparse.ArgumentParser):
 
@@ -529,6 +533,7 @@ def tune(args):
         super_group_size=args.super_group_size,
         super_bits=args.super_bits,
         disable_opt_rtn=args.disable_opt_rtn,
+        force_cpu_caching=args.force_cpu_caching
     )
 
     model_name = args.model.rstrip("/")
